@@ -72,6 +72,22 @@ df["day"] = df["Datetime"].dt.date
 
 df_final = df
 
+df_final['day-time'] = df_final['day'].astype(str) + '-' + df_final['AMPM'].astype(str)
+
+# Compd mapping
+mapping = {'A': 'P46','B': 'P54','C': 'P61','D': 'P84',
+           'E': 'P37','F': 'P35','G': 'P25','H': 'P33','SRTT':'SRTT'}
+df_final['Compd'] = df_final['GroupSpec'].map(mapping)
+
+# Data excel save
+# file_path = r'D:\VehicleTest\Data\2025\0. 기반기술\1. Compd 온도별 평가\2차\dfall.xlsx'
+file_path = os.path.join(os.path.dirname(fName[0]), "dfall.xlsx")
+df_final.to_excel(file_path, index=False)
+
+save_pickle = os.path.join(os.path.dirname(fName[0]), "Hydro_data_total.pkl")
+with open(save_pickle, "wb") as f:
+    pickle.dump(df_final, f)
+
 spec_list = sorted(df_final['RoadInfo'].unique())
 n = len(spec_list)
 for idx, spec_val in enumerate(spec_list):

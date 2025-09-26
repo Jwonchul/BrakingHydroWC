@@ -45,6 +45,7 @@ for k in range(len(dfraw)):
     dt = datetime.strptime(parts[-1], '%Y%m%d%H%M')
     parts[-1] = dt.strftime('%Y-%m-%d %H:%M:%S')
     columns = ['TestItem', 'ReqNo', 'TestSet', 'RoadInfo', 'CondInfo', 'AMPM', 'GroupSpec','Datetime']
+    # columns = ['TestItem', 'ReqNo', 'TestSet', 'RoadInfo', 'CondInfo', 'WK', 'GroupSpec','Datetime']
     df_spec = pd.DataFrame([parts], columns=columns).reset_index(drop=True)
 
     testname = re.split(r"[-_]", file_name)
@@ -62,7 +63,8 @@ for k in range(len(dfraw)):
         value_hys_tmp = {}
         for target in targets:
             closest_idx = (hys_tmp['SlipRatio'] - target).abs().idxmin()
-            closest_value = hys_tmp.loc[closest_idx, 'SlipRatio']
+            # closest_value = hys_tmp.loc[closest_idx, 'SlipRatio']
+            closest_value = hys_tmp.loc[closest_idx, 'VelHorizontal']
             col_name = f'SlipRatio {target}%'
             value_hys_tmp[col_name] = closest_value
 
@@ -71,10 +73,29 @@ for k in range(len(dfraw)):
         df_hys_single = pd.concat([df_spec, value_hys], axis=1)
         list_hys.append(df_hys_single)
 
-df_hyc = pd.concat(list_hyc, ignore_index=True)
-df_hys = pd.concat(list_hys, ignore_index=True)
-df_all = pd.concat([df_hyc, df_hys], axis=0, ignore_index=True)
-df_all['Datetime'] = pd.to_datetime(df_all['Datetime'])
+# df_hyc = pd.concat(list_hyc, ignore_index=True)
+# df_hys = pd.concat(list_hys, ignore_index=True)
+# df_all = pd.concat([df_hyc, df_hys], axis=0, ignore_index=True)
+# df_all['Datetime'] = pd.to_datetime(df_all['Datetime'])
+
+df_list = []
+
+# df_hyc 생성 (list_hyc가 비어있지 않은 경우에만)
+if list_hyc:
+    df_hyc = pd.concat(list_hyc, ignore_index=True)
+    df_list.append(df_hyc)
+
+# df_hys 생성 (list_hys가 비어있지 않은 경우에만)
+if list_hys:
+    df_hys = pd.concat(list_hys, ignore_index=True)
+    df_list.append(df_hys)
+
+# df_all 생성 (데이터가 있는 경우에만)
+if df_list:
+    df_all = pd.concat(df_list, ignore_index=True)
+    df_all['Datetime'] = pd.to_datetime(df_all['Datetime'])
+else:
+    df_all = pd.DataFrame(columns=['Datetime'])
 
 save_pickle = os.path.join(os.path.dirname(fName[0]), "hy_data.pkl")
 with open(save_pickle, "wb") as f:

@@ -246,6 +246,7 @@ def slip_stats_distribution(df, **kwargs):
     margin = kwargs.get('margin', 3)
     weights = kwargs.get('weights', None)
     plot = kwargs.get("plot", False)
+    plotname = kwargs.get("plotname", None)
 
     # 컬럼 이름 추출
     def find_column(keyword):
@@ -300,6 +301,8 @@ def slip_stats_distribution(df, **kwargs):
         plt.legend()
         plt.grid(True)
         plt.tight_layout()
+    if plotname:
+        plt.title(plotname)
 
     return x, mixture_pdf
 
