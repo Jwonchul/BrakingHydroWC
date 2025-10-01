@@ -65,6 +65,15 @@ df_final_total['Vehicle'] = np.select([cond_golfA, cond_golfB, cond_SrttA, cond_
 df_final = df_final_total.drop_duplicates(subset='Dist_mean', keep='first')
 df_final["Month"] = df_final["Datetime"].dt.month
 
+
+## 제어 구간 확인
+Fslip_chname = ['Front_MaxSlip','Front_Kurtosis','Front_Skew','Dist_mean']
+tmpdata = df_final[Fslip_chname]
+selectdata = tmpdata.iloc[[0]]
+x, y = slip_stats_distribution(selectdata)
+plt.figure()
+plt.plot(x, y, linestyle='-')
+
 # offset Braking
 # df_offset_WHC = data_correction(df_final,['RoadInfo', 'Compd'],'WHC','Dist_mean',[10,20])
 # plt_group_multi_linear(df_offset_WHC,['RoadInfo', 'Compd'],'WHC','Dist_mean_offset')

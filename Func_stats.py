@@ -289,6 +289,7 @@ def slip_stats_distribution(df, **kwargs):
         individual_pdfs.append(y)
         mixture_pdf += weights[idx] * y
 
+
         if plot:
             plt.plot(x, y, label=f'Distribution {idx+1}', color=colors[idx % len(colors)], alpha=0.6)
 
