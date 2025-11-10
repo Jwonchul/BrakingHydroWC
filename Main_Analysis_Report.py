@@ -88,6 +88,44 @@ for k in range(len(rawdf)):
     dfbrk = dfbrk.copy()
     dfbrk['AbsLapT'] = dfbrk.groupby('testNum').cumcount() * timeinter
 
+    # plt.figure()
+    # plt.plot(dfbrk['AbsLapT'],dfbrk['VelHorizontal'],'.k')
+    # plt.plot(dfbrk['AbsLapT'], dfbrk['wsFL'], '.r')
+    # plt.plot(dfbrk['AbsLapT'], dfbrk['wsFR'], '.b')
+    # plt.plot(dfbrk['AbsLapT'], dfbrk['wsRL'], '.y')
+    # plt.plot(dfbrk['AbsLapT'], dfbrk['wsRR'], '.g')
+
+
+    fig, axes = plt.subplots(2, 2, figsize=(10, 8))  # 2행 2열 subplot
+    axes = axes.flatten()  # 2차원 배열 → 1차원 리스트로 변환
+
+    # 각 subplot에 다른 데이터 그리기
+    axes[0].plot(dfbrk['AbsLapT'], dfbrk['VelHorizontal'], '.k')
+    axes[0].plot(dfbrk['AbsLapT'], dfbrk['wsFL'], '.r')
+    axes[0].set_title('wsFL')
+
+    axes[1].plot(dfbrk['AbsLapT'], dfbrk['VelHorizontal'], '.k')
+    axes[1].plot(dfbrk['AbsLapT'], dfbrk['wsFR'], '.b')
+    axes[1].set_title('wsFR')
+
+    axes[2].plot(dfbrk['AbsLapT'], dfbrk['VelHorizontal'], '.k')
+    axes[2].plot(dfbrk['AbsLapT'], dfbrk['wsRL'], '.y')
+    axes[2].set_title('wsRL')
+
+    axes[3].plot(dfbrk['AbsLapT'], dfbrk['VelHorizontal'], '.k')
+    axes[3].plot(dfbrk['AbsLapT'], dfbrk['wsRR'], '.g')
+    axes[3].set_title('wsRR')
+
+
+    # 공통 축 라벨 및 여백 조정
+    for ax in axes:
+        ax.set_xlabel('AbsLapT')
+        ax.set_ylabel('Value')
+        ax.grid(True)
+
+    fig.suptitle(folder_name+'WS', fontsize=16, fontweight='bold')
+    plt.tight_layout()
+
     # Time Sum
     df_time_sum = dfbrk.groupby(['AbsLapT'], as_index=False)[select_plt_col].mean()
     df_time_sum['distance'] = df_time_sum['distance'].cumsum()

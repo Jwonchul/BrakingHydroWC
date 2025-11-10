@@ -7,6 +7,7 @@ from scipy.stats import skew, kurtosis
 import re
 import pickle
 from Func_stats import *
+from Func import *
 from scipy import stats
 
 # path = r'D:\VehicleTest\Data\2025\0. 기반기술\1. Compd 온도별 평가\WetBraking'
@@ -17,6 +18,12 @@ rawdf, fName = ReadDataFile(path, filter='*.vbo', reftime={'Time': 9}, date=True
 # rawdf, fName = ReadDataFile(path, filter='*.vbo', reftime={'Time': 9}, date=True, swa="VW_Sign",headendline=300)
 all_results = []
 detail_results = []
+slip_results = []
+color_list = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+              '#8c564b', '#e377c2', '#bcbd22', '#17becf', '#393b79',
+              '#637939', '#8c6d31', '#843c39', '#7b4173', '#1b9e77',
+              '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#a6761d']
+
 for k in range(len(rawdf)):
 # 파일명에 따라 폴더 만들고 저장
     file_name = os.path.basename(fName[k])
@@ -31,19 +38,23 @@ for k in range(len(rawdf)):
     parts.append(re.search(r'W(\d+)T(\d+)', parts[4]).group(2))
 
     ## 2025 Compd 평가
-    columns = ['TestItem', 'ReqNo', 'TestSet', 'RoadInfo', 'CondInfo', 'AMPM', 'GroupSpec', 'WaterDepth', 'TempSEP']
+    # columns = ['TestItem', 'ReqNo', 'TestSet', 'RoadInfo', 'CondInfo', 'AMPM', 'GroupSpec', 'WaterDepth', 'TempSEP']
     # columns = ['TestItem', 'ReqNo', 'TestSet', 'RoadInfo', 'CondInfo', 'Spec1', 'Spec2','InputDay', 'WaterDepth', 'TempSEP']
+
+    ## 2025 PG Compare
+    columns = ['TestItem', 'PG', 'TestSet', 'RoadInfo', 'CondInfo', 'AMPM', 'GroupSpec', 'WaterDepth', 'TempSEP']
 
     df_spec = pd.DataFrame([parts], columns=columns).reset_index(drop=True)
 
     # raw = rawdf[0][1]
     # df = AN_ACCBRK(rawdf[k][1], rawdf[k][3], slip=True, target= [80, 5], plot=True)
-    df = AN_ACCBRK(rawdf[k][1], rawdf[k][3], slip=any('WheelSpeed' in col for col in rawdf[k][1].columns),
-                   target= [80, 20], valid=4, plot=True) # Compd 평가
+    # df = AN_ACCBRK(rawdf[k][1], rawdf[k][3], slip=any('WheelSpeed' in col for col in rawdf[k][1].columns),
+    #                target= [80, 20], valid=4, plot=True) # Compd 평가
     # df = AN_ACCBRK(rawdf[k][1], rawdf[k][3], slip=any('WheelSpeed' in col for col in rawdf[k][1].columns),
     #                target=[100, 5], valid=4, plot=True)  # Compd 평가 (Dry)
-    # df = AN_ACCBRK(rawdf[k][1], rawdf[k][3], slip=any('WheelSpeed' in col for col in rawdf[k][1].columns),
-    #                target=[80, 20], valid=4, plot=True) # PG Compare
+    df = AN_ACCBRK(rawdf[k][1], rawdf[k][3], slip=any('WheelSpeed' in col for col in rawdf[k][1].columns),
+                   target=[80, 20], valid=6, plot=True) # PG Compare
+
     df["filterAcc"] = SP_MovingAverage(df[["AccForward"]], ws=30, plot=True).values
     df["dist"] = df["VelHorizontal"] / 3.6 / rawdf[0][3]
 
@@ -95,14 +106,29 @@ for k in range(len(rawdf)):
         df_partial = partialResult.reset_index(drop=True)
 
         # SlipGraph
-        # dfslip = AN_ACCBRK(rawdf[k][1], rawdf[k][3], slip=True, target= [80, 10], valid=4, plot=True) # Compd 평가
-        dfslip = AN_ACCBRK(rawdf[k][1], rawdf[k][3], slip=True, target=[100, 10], valid=4, plot=True) # Compd 평가(Dry)
+        dfslip = AN_ACCBRK(rawdf[k][1], rawdf[k][3], slip=True, target= [80, 10], valid=6, plot=True) # Compd 평가
+        # dfslip = AN_ACCBRK(rawdf[k][1], rawdf[k][3], slip=True, target=[100, 10], valid=4, plot=True) # Compd 평가(Dry)
         dfslip["filterAcc"] = SP_MovingAverage(dfslip[["AccForward"]], ws=50, plot=True).values
         dfslip = dfslip.loc[~dfslip["effNum"].isna()] # 선택한 제동거리 선택
 
         front_dict = slip_stats(dfslip, "srFL", "srFR", "Front")
         rear_dict  = slip_stats(dfslip, "srRL", "srRR", "Rear")
         df_slip = pd.DataFrame([{**front_dict, **rear_dict}])
+
+        # Slip 결과 detail
+        front_slip_raw = slip_stats(dfslip, "srFL", "srFR", "Front", detail=True)
+        rear_slip_raw = slip_stats(dfslip, "srRL", "srRR", "Rear", detail=True)
+        df_slip_raw = pd.concat([pd.DataFrame([front_slip_raw]), pd.DataFrame([rear_slip_raw])], axis=1)
+        front_rear_slip = pd.concat([df_slip_raw.loc[0, 'Front_df_AN'],df_slip_raw.loc[0, 'Rear_df_AN']], axis=1)
+
+        # save_excel = os.path.join(folder_path, "df_slip_raw.xlsx")
+        # front_rear_slip.to_excel(save_excel, index=False)
+
+        save_excel = os.path.join(folder_path, f"slip_{folder_name}.xlsx")
+        front_rear_slip.to_excel(save_excel, index=False)
+
+        df_slip_result = pd.concat([df_spec, df_dist,df_acc,df_Datetime,df_partial,df_slip_raw], axis=1)
+        slip_results.append(df_slip_result)
 
         df_result = pd.concat([df_spec, df_dist,df_acc,df_Datetime,df_partial,df_slip], axis=1)
         all_results.append(df_result)
@@ -129,6 +155,10 @@ for k in range(len(rawdf)):
 
     plt.close('all')
     print(f"Analysis End: {file_name}")
+
+df_slip_total = pd.concat(slip_results, ignore_index=True)
+# group_bar(df_slip_total,['Front_Slip_min','Front_Slip_max'],'GroupSpec',
+#           'RoadInfo','Dist_mean','m',color=color_list)
 
 df_all = copy_and_sum_lists(all_results, detail_results)
 # df_all = pd.concat(all_results, ignore_index=True)

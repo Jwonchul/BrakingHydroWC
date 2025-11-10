@@ -157,13 +157,49 @@ def stats_tdist(series, confidence=95, **kwargs):
 
     return result
 
-def slip_stats(df, left_col, right_col, prefix):
+def slip_stats(df, left_col, right_col, prefix, **kwargs):
+
+    detail = kwargs.get("detail", False)
 
     tmp = df.loc[(~df["testNum"].isna()) & (df["filterAcc"] < 0) &
                  (df[left_col]  > 0) & (df[right_col] > 0) & (df["VelHorizontal"] > 5)]
     slip = pd.Series(np.concatenate([tmp[left_col].values, tmp[right_col].values]))
     x, y = AN_Histogram(slip, bandwidth=0.3, bin=1000)
     peak  = x[np.argmax(y)]
+
+    df_AN = pd.DataFrame({
+        f'{prefix}_AN_slip': x,
+        f'{prefix}_AN_pdf': y})
+
+    # # 누적분포(CDF)를 통한 계산
+    # cdf = np.cumsum(y)
+    # cdf /= cdf[-1]  # 정규화
+    # per = 60
+    # cut = (1 - per / 100) / 2
+    # lower_x = np.interp(cut, cdf, x)
+    # upper_x = np.interp(1-cut, cdf, x)
+
+    # 가장 높은 밀도 부분부터 시작해서 적분이 0.8이 되는 최소 구간”
+    # per = 80
+    per = 60
+    sorted_idx = np.argsort(y)[::-1]  # 높은 밀도부터 정렬
+    cum_prob = np.cumsum(y[sorted_idx])
+    cum_prob /= cum_prob[-1]
+
+    # 상위 80% 밀도에 해당하는 x 값들만 선택
+    mask = cum_prob <= (per/100)
+    x_in_hdi = x[sorted_idx][mask]
+
+    hdi_min, hdi_max = x_in_hdi.min(), x_in_hdi.max()
+
+    # x1, y1 = AN_Histogram(slip, bandwidth=0.3, bin=1000, plot=True)
+    # x2, y2 = AN_Histogram(slip, bandwidth=0.5, bin=1000,plot=True)
+    # x3, y3 = AN_Histogram(slip, bandwidth=1, bin=1000,plot=True)
+    #
+    # plt.figure()
+    # plt.plot(x1,y1,'.r')
+    # plt.plot(x2, y2, '.b')
+    # plt.plot(x3, y3, '.g')
 
     ## figure
     plt.figure(figsize=(10, 6))
@@ -180,15 +216,30 @@ def slip_stats(df, left_col, right_col, prefix):
     plt.subplot(122)
     plt.plot(slip, marker='o',linestyle='')
     plt.axhline(peak, color='red', linestyle='--',label=f"MaxSlip={peak:.2f}")
-    plt.axhspan(peak-slip.std(ddof=0)/2, peak+slip.std(ddof=0)/2, color='orange', alpha=0.5,
-                label=f"stdev={slip.std(ddof=0):.2f}")
+    # plt.axhspan(peak-slip.std(ddof=0)/2, peak+slip.std(ddof=0)/2, color='orange', alpha=0.5,
+    #             label=f"stdev={slip.std(ddof=0):.2f}")
+    # plt.axhspan(lower_x, upper_x, color='orange', alpha=0.5,
+    #             label=f"{per}%={lower_x:.2f}~{upper_x:.2f}")
+    plt.axhspan(hdi_min, hdi_max, color='orange', alpha=0.5,
+                label=f"{per}%={hdi_min:.2f}~{hdi_max:.2f}")
     plt.ylabel('Slip')
     plt.grid(True)
     plt.legend(loc='upper right')
 
-    return {f"{prefix}_MaxSlip": peak,
-            f"{prefix}_Skew":    skew(slip),
-            f"{prefix}_Kurtosis":kurtosis(slip)}
+    if detail:
+        return {f"{prefix}_MaxSlip": peak,
+                f"{prefix}_Skew": skew(slip),
+                f"{prefix}_Kurtosis":kurtosis(slip),
+                f"{prefix}_Slip_min":hdi_min,
+                f"{prefix}_Slip_max":hdi_max,
+                f"{prefix}_Raw_Slip": slip,
+                f"{prefix}_df_AN": df_AN}
+    else:
+        return {f"{prefix}_MaxSlip": peak,
+                f"{prefix}_Skew": skew(slip),
+                f"{prefix}_Kurtosis":kurtosis(slip),
+                f"{prefix}_Slip_min": hdi_min,
+                f"{prefix}_Slip_max": hdi_max}
 
 # def slip_stats_distribution(data,**kwargs):
 #     margin = kwargs.get('margin', 3)

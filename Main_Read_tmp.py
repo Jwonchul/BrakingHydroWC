@@ -45,19 +45,6 @@ if "day" not in df_final_total.columns:
     df_final_total["day"] = df_final_total["Datetime"].dt.date
 df_final_total['day-time'] = df_final_total['day'].astype(str) + '-' + df_final_total['AMPM'].astype(str)
 
-# Compd mapping
-mapping = {'A': 'P46','B': 'P54','C': 'P61','D': 'P84',
-           'E': 'P37','F': 'P35','G': 'P25','H': 'P33','SRTT':'SRTT'}
-df_final_total['Compd'] = df_final_total['GroupSpec'].map(mapping)
-
-cond_golfA = df_final_total['Compd'].isin(['P46', 'P54', 'P37', 'P35'])  # Golf A
-cond_golfB = df_final_total['Compd'].isin(['P61', 'P84', 'P25', 'P33'])  # Golf B
-cond_SrttA = (df_final_total['Compd']=='SRTT') & (df_final_total['TestSet']=='T23')  # SRTT + T23 → Golf A
-cond_SrttB = (df_final_total['Compd']=='SRTT') & (df_final_total['TestSet']=='C11')  # SRTT + C11 → Golf B
-choices = ['Golf A', 'Golf B', 'Golf A', 'Golf B']
-df_final_total['Vehicle'] = np.select([cond_golfA, cond_golfB, cond_SrttA, cond_SrttB], choices, default=np.nan)
-# df_final_total['Vehicle'] = np.select([cond_golfA, cond_golfB, cond_SrttA, cond_SrttB], choices, default=np.nan)
-
 # 데이터 제거
 # df_final_total = df_final_total[~((df_final_total['Compd']=='P33') & (df_final_total['AMPM']=='AM') & (df_final_total['RoadInfo']=='A1C60'))]
 
@@ -77,6 +64,18 @@ df_final["Month"] = df_final["Datetime"].dt.month
 # df_offset_WHC = data_correction(df_final,['RoadInfo', 'Compd'],'WHC','Dist_mean',[10,20])
 # plt_group_multi_linear(df_offset_WHC,['RoadInfo', 'Compd'],'WHC','Dist_mean_offset')
 # plt_group_multi_linear(df_offset_WHC,['RoadInfo'],'WHC','Dist_mean_offset')
+df_final.rename(columns={'AMPM': 'Compd'}, inplace=True)
+
+# 온도 1차 추세선
+color_list = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+              '#8c564b', '#e377c2', '#bcbd22', '#17becf', '#393b79',
+              '#637939', '#8c6d31', '#843c39', '#7b4173', '#1b9e77',
+              '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#a6761d']
+
+group_bar(df_final,['Dist_min','Dist_max'],'Compd','RoadInfo','perDist','m',color=color_list)
+group_bar(df_final,['Dist_min','Dist_max'],'RoadInfo','Compd','perDist','m',color=color_list)
+group_bar(df_final,['Front_MaxSlip','Rear_MaxSlip'],'RoadInfo','Compd','perDist','/',color=color_list)
+plt_group_multi(df_final,['WaterDepth','Compd'],'Dist_mean','Front_MaxSlip')
 
 df_PIndex_WHC = plt_group_normal(df_final, ['RoadInfo', 'Compd'],
                                                 'Compd', 'WHC', [10,20], 'Dist_mean')
