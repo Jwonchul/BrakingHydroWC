@@ -34,6 +34,239 @@ folder_name = os.path.splitext(file_name)[0]
 folder_path = os.path.join(os.path.dirname(fName[0]), folder_name)
 # os.makedirs(folder_path, exist_ok=True)
 
+time_data = dfraw[0]['df_time_sum'].iloc[0]
+time_data22 = dfraw[0]['Front_df_AN'].iloc[0]
+time_data11 = dfraw[0]['Front_Raw_Slip'].iloc[0]
+time_data33 = dfraw[0]['dfbrk'].iloc[0]
+plt.figure()
+plt.plot(time_data33['AbsLapT'],time_data33["VelHorizontal"],'.')
+plt.plot(time_data33['AbsLapT'],time_data33["wsFL"],'.r')
+plt.plot(time_data33['AbsLapT'],time_data33["wsFR"],'.b')
+plt.plot(time_data33['AbsLapT'],time_data33["wsRL"],'.y')
+plt.plot(time_data33['AbsLapT'],time_data33["wsRR"],'.g')
+
+plt.figure()
+plt.plot(time_data['AbsLapT'],time_data["VelHorizontal"],'.')
+plt.figure()
+plt.plot(time_data['AbsLapT'],time_data['filterAcc'],'.')
+
+plt.figure()
+plt.plot(time_data22['Front_AN_slip'],time_data22['Front_AN_pdf'],'.')
+
+df = dfraw[0]
+testset_list = df['TestSet'].unique()
+
+for test_value in testset_list:
+    subset = df[df['TestSet'] == test_value]
+
+    plt.figure(figsize=(10,6))
+
+    for idx, row in subset.iterrows():
+        df_inner = row['df_time_sum']  # 내부 DataFrame (AbsLapT, filterAcc 포함)
+
+        x = df_inner['AbsLapT']
+        y = df_inner['filterAcc']
+
+        # Label = PG + RoadInfo
+        label = f"{row['PG']}_{row['RoadInfo']}"
+
+        plt.plot(x, y, label=label)
+
+    plt.xlabel("AbsLapT")
+    plt.ylabel("filterAcc")
+    plt.title(f"TestSet = {test_value}")
+    plt.legend()
+    plt.grid()
+
+color_list = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+              '#8c564b', '#e377c2', '#bcbd22', '#17becf', '#393b79',
+              '#637939', '#8c6d31', '#843c39', '#7b4173', '#1b9e77',
+              '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#a6761d']
+
+df_tmp = df[~df['TestSet'].isin(['C1', 'C2']) & ~df['RoadInfo'].isin(['B1CM', 'B1C220'])]
+plt_group(df_tmp, ['PG'], 'TestItem', 'Dist_mean', 'perDist')
+plt_group_multi(df_tmp, ['PG','TestItem'], 'Dist_mean', 'perDist', text='TestSet')
+df_ID = df_tmp[df_tmp['PG']=='ID']
+plt_group_multi(df_ID, ['TestSet','RoadInfo'], 'Dist_mean', 'perDist', text='TestSet')
+df_TR = df_tmp[df_tmp['PG']=='TR']
+plt_group_multi(df_TR, ['TestSet','RoadInfo'], 'Dist_mean', 'perDist', text='TestSet')
+df_PF = df_tmp[df_tmp['PG']=='PF']
+plt_group_multi(df_PF, ['TestSet','RoadInfo'], 'Dist_mean', 'perDist', text='TestSet')
+
+
+testset_list = df_tmp['PG'].unique()
+plt.figure(figsize=(10,6))
+for i, test_value in enumerate(testset_list):
+    subset = df_tmp[df_tmp['PG'] == test_value]
+    plt.plot(subset['perDist'],'.',color=color_list[i],label=test_value)
+    plt.legend()
+
+testset_list = df['TestSet'].unique()
+
+for test_value in testset_list:
+    subset = df[df['TestSet'] == test_value]
+
+    fig, axes = plt.subplots(2, 1, figsize=(10, 12))
+
+    # --- 1번 subplot: Front ---
+    ax = axes[0]
+
+    for idx, row in subset.iterrows():
+        df_inner = row['Front_df_AN']
+
+        x = df_inner['Front_AN_slip']
+        y = df_inner['Front_AN_pdf']
+
+        label = f"{row['PG']}_{row['RoadInfo']}"
+        ax.plot(x, y, label=label)
+
+    ax.set_xlabel('Front_AN_slip')
+    ax.set_ylabel('Front_AN_pdf')
+    ax.set_title(f"[Front] TestSet = {test_value}")
+    ax.grid(True)
+    ax.legend()
+
+    # --- 2번 subplot: Rear ---
+    ax = axes[1]
+
+    for idx, row in subset.iterrows():
+        df_inner = row['Rear_df_AN']
+
+        x = df_inner['Rear_AN_slip']
+        y = df_inner['Rear_AN_pdf']
+
+        label = f"{row['PG']}_{row['RoadInfo']}"
+        ax.plot(x, y, label=label)
+
+    ax.set_xlabel('Rear_AN_slip')
+    ax.set_ylabel('Rear_AN_pdf')
+    ax.set_title(f"[Rear] TestSet = {test_value}")
+    ax.grid(True)
+    ax.legend()
+
+    plt.tight_layout()
+
+testset_list = df['TestSet'].unique()
+
+for test_value in testset_list:
+    subset = df[df['TestSet'] == test_value]
+
+    fig, axes = plt.subplots(2, 1, figsize=(10, 12))
+    ax = axes[0]
+    for idx, row in subset.iterrows():
+        df_inner = row['Front_Raw_Slip']
+
+        label = f"{row['PG']}_{row['RoadInfo']}"
+        ax.plot(df_inner, '.',label=label)
+
+    ax.set_title(f"[Front] TestSet = {test_value}")
+    ax.grid(True)
+    ax.legend()
+
+    ax = axes[1]
+
+    for idx, row in subset.iterrows():
+        df_inner = row['Rear_Raw_Slip']
+
+        label = f"{row['PG']}_{row['RoadInfo']}"
+        ax.plot(df_inner, '.',label=label)
+    ax.set_title(f"[Rear] TestSet = {test_value}")
+    ax.grid(True)
+    ax.legend()
+
+    plt.tight_layout()
+
+df_select = df[df['RoadInfo'].isin(['A1CM','A2CM','A1C60'])]
+testset_list = df_select['TestSet'].unique()
+
+for test_value in testset_list:
+    subset = df_select[df_select['TestSet'] == test_value]
+
+    fig, axes = plt.subplots(2, 1, figsize=(10, 12))
+
+    ax = axes[0]
+
+    for idx, row in subset.iterrows():
+        df_inner = row['dfbrk']
+
+        x = df_inner['AbsLapT']
+        y = df_inner['wsFL']
+
+        label = f"{row['PG']}_{row['RoadInfo']}"
+        ax.plot(x, y, '.',label=label)
+
+    ax.set_xlabel('Front_AN_slip')
+    ax.set_ylabel('Front_AN_pdf')
+    ax.set_title(f"[Front] TestSet = {test_value}")
+    ax.grid(True)
+    ax.legend()
+
+    # --- 2번 subplot: Rear ---
+    ax = axes[1]
+
+    for idx, row in subset.iterrows():
+        df_inner = row['dfbrk']
+
+        x = df_inner['AbsLapT']
+        y = df_inner['wsRL']
+
+        label = f"{row['PG']}_{row['RoadInfo']}"
+        ax.plot(x, y, '.',label=label)
+
+    ax.set_xlabel('Rear_AN_slip')
+    ax.set_ylabel('Rear_AN_pdf')
+    ax.set_title(f"[Rear] TestSet = {test_value}")
+    ax.grid(True)
+    ax.legend()
+
+    plt.tight_layout()
+
+testset_list = df['TestSet'].unique()
+
+for test_value in testset_list:
+    subset = df[df['TestSet'] == test_value]
+
+    fig, axes = plt.subplots(2, 1, figsize=(10, 12))
+
+    # --- 1번 subplot: Front ---
+    ax = axes[0]
+
+    for idx, row in subset.iterrows():
+        df_inner = row['dfbrk']
+
+        x = df_inner['AbsLapT']
+        y = df_inner['filterAcc']
+
+        label = f"{row['PG']}_{row['RoadInfo']}"
+        ax.plot(x, y, label=label)
+
+    ax.set_xlabel('Front_AN_slip')
+    ax.set_ylabel('Front_AN_pdf')
+    ax.set_title(f"[Front] TestSet = {test_value}")
+    ax.grid(True)
+    ax.legend()
+
+    # --- 2번 subplot: Rear ---
+    ax = axes[1]
+
+    for idx, row in subset.iterrows():
+        df_inner = row['dfbrk']
+
+        x = df_inner['Rear_AN_slip']
+        y = df_inner['Rear_AN_pdf']
+
+        label = f"{row['PG']}_{row['RoadInfo']}"
+        ax.plot(x, y, label=label)
+
+    ax.set_xlabel('Rear_AN_slip')
+    ax.set_ylabel('Rear_AN_pdf')
+    ax.set_title(f"[Rear] TestSet = {test_value}")
+    ax.grid(True)
+    ax.legend()
+
+    plt.tight_layout()
+
+
 # 모든 데이터프레임의 공통 컬럼 찾기
 common_cols = set(dfraw[0].columns)
 for df in dfraw[1:]:
