@@ -23,7 +23,7 @@ import itertools
 import math
 
 # path 지정
-path = r'D:\VehicleTest\Data\2025\0. 기반기술\1. Compd 온도별 평가\2차'
+path = r'G:\hankooktire\3. 계측평가\2025\6. PG Compare\Braking\Total'
 # path = r'C:\Users\HANTA\Desktop\작업\1. Compd 온도별 평가\WetBraking'
 
 # pickle(Performance 데이터), txt(Weather&Road 데이터) 모두 선택
@@ -78,14 +78,19 @@ for test_value in testset_list:
     plt.legend()
     plt.grid()
 
+df['PG-Road'] = df['PG'] + '_'+df['RoadInfo']
+plt_group_multi(df, ['PG','TestItem'], 'Dist_mean', 'perDist', text='TestSet')
+
 color_list = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
               '#8c564b', '#e377c2', '#bcbd22', '#17becf', '#393b79',
               '#637939', '#8c6d31', '#843c39', '#7b4173', '#1b9e77',
               '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#a6761d']
 
 df_tmp = df[~df['TestSet'].isin(['C1', 'C2']) & ~df['RoadInfo'].isin(['B1CM', 'B1C220'])]
+df_tmp['PG-Road'] = df_tmp['PG'] + '_'+df_tmp['RoadInfo']
 plt_group(df_tmp, ['PG'], 'TestItem', 'Dist_mean', 'perDist')
 plt_group_multi(df_tmp, ['PG','TestItem'], 'Dist_mean', 'perDist', text='TestSet')
+plt_group_multi(df_tmp, ['PG-Road','TestItem'], 'Dist_mean', 'perDist', text='TestSet')
 df_ID = df_tmp[df_tmp['PG']=='ID']
 plt_group_multi(df_ID, ['TestSet','RoadInfo'], 'Dist_mean', 'perDist', text='TestSet')
 df_TR = df_tmp[df_tmp['PG']=='TR']
@@ -220,6 +225,42 @@ for test_value in testset_list:
     ax.legend()
 
     plt.tight_layout()
+
+## 그래프 추가
+columns = ['wsFL', 'wsFR', 'wsRL', 'wsRR']       # y 컬럼
+x_column = 'AbsLapT'                             # x 컬럼
+titles = ['Front Left', 'Front Right', 'Rear Left', 'Rear Right']
+
+
+def plot_characteristic_curve(df_select, groupname, comparename, **kwargs):
+    plot = kwargs.get('plot', False)
+
+    for test_value in testset_list:
+        subset = df_select[df_select[groupname] == test_value]
+        # subset = df_select[df_select['TestSet'] == test_value]
+        fig, axes = plt.subplots(2, 2, figsize=(12, 8), sharex=True)
+        axes = axes.flatten()  # 2x2 배열을 1차원으로 변환
+
+        for ax, y_col, title in zip(axes, columns, titles):
+            for idx, row in subset.iterrows():
+                # df_inner = row['dfbrk']
+
+                x = df_inner[x_column]
+                y = df_inner[y_col]
+
+                label = f"{row[comparename]}"
+                ax.plot(x, y, '.', label=label)
+
+            ax.set_ylabel(f"{y_col}")
+            ax.set_title(f"[{title}] {groupname}={test_value}")
+            ax.grid(True)
+            ax.legend()
+
+        axes[-1].set_xlabel(f"{x_column}")  # 마지막 subplot에 x축 라벨
+        plt.tight_layout()
+
+
+
 
 testset_list = df['TestSet'].unique()
 
